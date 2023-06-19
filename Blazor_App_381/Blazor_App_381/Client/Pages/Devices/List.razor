@@ -1,0 +1,99 @@
+﻿@page "/Devices/List"
+@inject HttpClient http
+@inject IJSRuntime JS
+<div class="row">
+    <div class="col-12">
+        @if (devices is null)
+        {
+            <div> Wait...</div>
+        }
+        else
+        {
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <h3>Mobiles</h3>
+                <a href="/Devices/Create" class="btn btn-warning btn-sm text-center">Add New Mobile</a>
+            </div>
+            <table class="table table-bordered">
+                <thead class="bg-light">
+                    <tr>
+                        <th></th>
+                        <th>Mobile Model</th>
+                        <th>Manufacture Date</th>
+                        <th>Mobile Price</th>
+                        <th>Available?</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var d in devices)
+                    {
+                        <tr>
+                            <td class="text-center"><img class="rounded-circle" src="/Pictures/@d.Picture" style="width:40px" /></td>
+                            <td>@d.DeviceName</td>
+                            <td>@string.Format($"{d.ReleaseDate:yyyy-MM-dd}")</td>
+                            <td>@string.Format($"{d.Price:0.00}")</td>
+                            <td>@(d.OnSale ? "Yes" : "No")</td>
+                            <td>
+                                <a class="btn btn-success btn-sm" href="/Devices/Edit/@d.DeviceId">Edit</a>
+                                <button class="btn btn-info btn-sm" @onclick="() => DelIt(d.DeviceId)">Delete</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td colspan="5">
+                                <h6>Specs</h6>
+                                <table class="table table-bordered">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th>Configuration Category</th>
+                                            <th>Details</th>
+
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var s in d.Specs)
+                                        {
+                                            <tr>
+                                                <td>@s.SpecName</td>
+                                                <td>@s.Value</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+@code {
+    private List<Device> devices = null!;
+    protected async override Task OnInitializedAsync()
+    {
+        var data = await this.http.GetFromJsonAsync<List<Device>>("/api/Devices/Specs");
+        if (data is not null)
+        {
+            this.devices = data;
+        }
+    }
+    private async Task DelIt(int id)
+    {
+        var ok = await JS.InvokeAsync<bool>("confirm", "Are you sure?");
+        if (ok)
+        {
+            var response = await http.DeleteAsync($"api/Devices/{id}");
+            if (response.IsSuccessStatusCode)
+            {
+                var index = devices.FindIndex(x => x.DeviceId == id);
+                if (index >= 0)
+                {
+                    devices.RemoveAt(index);
+                }
+            }
+        }
+    }
+
+}
